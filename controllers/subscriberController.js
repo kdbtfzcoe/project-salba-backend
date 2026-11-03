@@ -5,13 +5,15 @@ exports.createSubscriber = async (req, res) => {
         const { name, phone, mobile, address, latitude, longitude } = req.body;
         const targetPhone = phone || (mobile ? `+63${mobile}` : null);
 
+        // Simply insert the user. The PostgreSQL trigger will automatically 
+        // calculate and fill in distance_to_node in the background!
         const { data, error } = await supabase
-            .from('subscribers')
+            .from('recipients')
             .insert([
                 {
-                    name: name || 'Anonymous',
-                    phone: targetPhone,
-                    address: address || null,
+                    full_name: name || 'Anonymous',
+                    mobile_number: targetPhone,
+                    home_address: address || null,
                     latitude: latitude ? parseFloat(latitude) : null,
                     longitude: longitude ? parseFloat(longitude) : null
                 }
@@ -27,11 +29,11 @@ exports.createSubscriber = async (req, res) => {
 
         return res.status(201).json({ 
             success: true, 
-            message: 'Subscriber registered successfully', 
+            message: 'Recipient registered successfully and distance computed!', 
             data: data && data.length > 0 ? data[0] : null 
         });
     } catch (err) {
-        console.error('[Subscriber Controller Error]:', err.message);
+        console.error('[Recipient Controller Error]:', err.message);
         return res.status(500).json({ message: err.message || 'Server error' });
     }
 };

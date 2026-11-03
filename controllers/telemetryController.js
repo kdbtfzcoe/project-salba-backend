@@ -2,7 +2,7 @@ const supabase = require('../config/db');
 const emaService = require('../utils/emafilter');
 const rocService = require('../utils/roc');
 const forecastService = require('../utils/forecast');
-
+const smsService = require('../services/smsService');
 // ==========================================
 // 1. Used by React Frontend (GET /telemetry/live)
 // ==========================================
@@ -110,7 +110,7 @@ exports.receiveTelemetry = async (req, res) => {
         if (countError) throw countError;
 
         // --- STEP 3: Batch Gate Check (Require at least 5 entries) ---
-        if (!count || count < 5) {
+        if (!count || count < 1) {
             return res.status(201).json({
                 success: true,
                 batched: false,
@@ -165,6 +165,11 @@ exports.receiveTelemetry = async (req, res) => {
             .single();
 
         if (calcError) throw calcError;
+
+        // --- STEP 10: Asynchronously evaluate and dispatch threshold SMS alerts ---
+        smsService.evaluateAndDispatch(calcLog).catch(smsErr => {
+            console.error('[Background SMS Dispatch Error]:', smsErr.message);
+        });
 
         return res.status(201).json({
             success: true,
